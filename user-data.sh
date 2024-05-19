@@ -30,6 +30,11 @@ echo "$IP_V4" > /tmp/ec2_ip_address.txt
 # Export the IP address as an environment variable for frontend
 export VUE_APP_API_URL="http://$IP_V4:8080"
 
+# Clone the repository with sudo and set correct permissions
+sudo mkdir -p /app
+sudo chown -R $USER:$USER /app
+git clone https://github.com/pwr-cloudprogramming/a10-kobebrylant.git /app > /tmp/git_clone.log 2>&1
+
 # Export environment variables for backend
 cat <<EOF > /app/.env
 JWT_SECRET_KEY=secret_jwt
@@ -38,11 +43,8 @@ APP_CLIENT_ID=${user_pool_client_id}
 COGNITO_REGION=${cognito_region}
 EOF
 
-# Clone the repository
-git clone https://github.com/pwr-cloudprogramming/a10-kobebrylant.git /app > /tmp/git_clone.log 2>&1
-
 # Navigate to the app directory
-cd /app
+sudo cd /app
 
 # Start the application using Docker Compose
 sudo -E docker-compose up --build > /tmp/docker_compose_up.log 2>&1
