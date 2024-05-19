@@ -1,3 +1,4 @@
+# Dockerfile for backend
 FROM python:3.10-alpine
 
 WORKDIR /app
@@ -8,4 +9,5 @@ RUN pip install -r requirements.txt
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "source .env && python app.py"]
+ENTRYPOINT ["python3"]
+CMD ["app.py"]

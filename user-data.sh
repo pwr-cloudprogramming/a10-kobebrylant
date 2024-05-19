@@ -35,6 +35,9 @@ sudo mkdir -p /app
 sudo chown -R $USER:$USER /app
 git clone https://github.com/pwr-cloudprogramming/a10-kobebrylant.git /app > /tmp/git_clone.log 2>&1
 
+# Copy the aws-exports.js file to the frontend directory
+sudo cp /tmp/aws-exports.js /app/frontend/source/aws-exports.js
+
 # Navigate to the app directory
 cd /app
 

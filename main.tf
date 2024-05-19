@@ -148,6 +148,11 @@ data "template_file" "aws_exports" {
 
 resource "local_file" "aws_exports_js" {
   content  = data.template_file.aws_exports.rendered
+  filename = "${path.module}/aws-exports.js"
+}
+
+resource "local_file" "copy_aws_exports_js" {
+  content  = data.template_file.aws_exports.rendered
   filename = "${path.module}/frontend/source/aws-exports.js"
 }
 
