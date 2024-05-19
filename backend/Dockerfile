@@ -1,4 +1,3 @@
-# Dockerfile for backend
 FROM python:3.10-alpine
 
 WORKDIR /app
@@ -6,8 +5,6 @@ WORKDIR /app
 COPY src/ .
 
 RUN pip install -r requirements.txt
-
-COPY .env .
 
 EXPOSE 8080
 

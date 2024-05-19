@@ -35,16 +35,12 @@ sudo mkdir -p /app
 sudo chown -R $USER:$USER /app
 git clone https://github.com/pwr-cloudprogramming/a10-kobebrylant.git /app > /tmp/git_clone.log 2>&1
 
-# Export environment variables for backend
-cat <<EOF > /app/.env
-JWT_SECRET_KEY=secret_jwt
-USER_POOL_ID=${user_pool_id}
-APP_CLIENT_ID=${user_pool_client_id}
-COGNITO_REGION=${cognito_region}
-EOF
-
 # Navigate to the app directory
-sudo cd /app
+cd /app
 
-# Start the application using Docker Compose
-sudo -E docker-compose up --build > /tmp/docker_compose_up.log 2>&1
+# Start the application using Docker Compose with environment variables
+sudo -E JWT_SECRET_KEY=secret_jwt \
+USER_POOL_ID=${user_pool_id} \
+APP_CLIENT_ID=${user_pool_client_id} \
+COGNITO_REGION=${cognito_region} \
+sudo -E docker-compose up --build  > /tmp/docker_compose_up.log 2>&1
