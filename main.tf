@@ -22,6 +22,17 @@ variable "jwt_secret_key" {
   type        = string
 }
 
+variable "user_pool_id" {
+  description = "Cognito User Pool ID"
+  type        = string
+}
+
+variable "user_pool_client_id" {
+  description = "Cognito User Pool Client ID"
+  type        = string
+}
+
+# Define VPC
 resource "aws_vpc" "tictactoe_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
@@ -31,6 +42,7 @@ resource "aws_vpc" "tictactoe_vpc" {
   }
 }
 
+# Define Subnet
 resource "aws_subnet" "tictactoe_subnet" {
   vpc_id                  = aws_vpc.tictactoe_vpc.id
   cidr_block              = "10.0.1.0/24"
@@ -41,6 +53,7 @@ resource "aws_subnet" "tictactoe_subnet" {
   }
 }
 
+# Define Internet Gateway
 resource "aws_internet_gateway" "tictactoe_igw" {
   vpc_id = aws_vpc.tictactoe_vpc.id
   tags = {
@@ -48,6 +61,7 @@ resource "aws_internet_gateway" "tictactoe_igw" {
   }
 }
 
+# Define Route Table
 resource "aws_route_table" "tictactoe_rt" {
   vpc_id = aws_vpc.tictactoe_vpc.id
   route {
@@ -64,6 +78,7 @@ resource "aws_route_table_association" "tictactoe_rta" {
   route_table_id = aws_route_table.tictactoe_rt.id
 }
 
+# Define Security Group
 resource "aws_security_group" "tictactoe_sg" {
   name        = "TicTacToeSG"
   description = "Security Group for TicTacToe app"
@@ -109,6 +124,7 @@ resource "aws_security_group" "tictactoe_sg" {
   }
 }
 
+# Define EC2 Instance
 resource "aws_instance" "tictactoe_instance" {
   ami                         = "ami-080e1f13689e07408"
   instance_type               = "t2.micro"
@@ -117,7 +133,7 @@ resource "aws_instance" "tictactoe_instance" {
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.tictactoe_sg.id]
 
-  user_data = templatefile("${path.module}/user-data.sh", {
+  user_data = templatefile("${path.module}/userdata.sh", {
     user_pool_id        = aws_cognito_user_pool.tictactoe_user_pool.id
     user_pool_client_id = aws_cognito_user_pool_client.tictactoe_user_pool_client.id
     cognito_region      = var.region
@@ -129,16 +145,19 @@ resource "aws_instance" "tictactoe_instance" {
   }
 }
 
+# Define Cognito User Pool
 resource "aws_cognito_user_pool" "tictactoe_user_pool" {
   name = "TicTacToeUserPool"
 }
 
+# Define Cognito User Pool Client
 resource "aws_cognito_user_pool_client" "tictactoe_user_pool_client" {
   name         = "TicTacToeUserPoolClient"
   user_pool_id = aws_cognito_user_pool.tictactoe_user_pool.id
   generate_secret = false
 }
 
+# Define Cognito Identity Pool
 resource "aws_cognito_identity_pool" "tictactoe_identity_pool" {
   identity_pool_name               = "TicTacToeIdentityPool"
   allow_unauthenticated_identities = false
@@ -149,6 +168,7 @@ resource "aws_cognito_identity_pool" "tictactoe_identity_pool" {
   }
 }
 
+# Outputs
 output "user_pool_id" {
   value = aws_cognito_user_pool.tictactoe_user_pool.id
 }
@@ -160,3 +180,4 @@ output "user_pool_client_id" {
 output "identity_pool_id" {
   value = aws_cognito_identity_pool.tictactoe_identity_pool.id
 }
+

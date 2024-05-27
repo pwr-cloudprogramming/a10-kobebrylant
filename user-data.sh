@@ -51,7 +51,7 @@ version: '3.8'
 services:
   frontend:
     environment:
-      - VUE_APP_API_URL
+      - VUE_APP_API_URL=\${VUE_APP_API_URL}
       - VUE_APP_COGNITO_REGION=\${VUE_APP_COGNITO_REGION}
       - VUE_APP_USER_POOL_ID=\${VUE_APP_USER_POOL_ID}
       - VUE_APP_USER_POOL_CLIENT_ID=\${VUE_APP_USER_POOL_CLIENT_ID}
