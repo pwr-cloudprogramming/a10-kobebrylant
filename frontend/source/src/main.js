@@ -1,19 +1,21 @@
-import Vue from 'vue';
-import { createApp } from 'vue'
-import App from './App.vue'
+import { createApp } from 'vue';
+import App from './App.vue';
 import Amplify from 'aws-amplify';
-import awsconfig from './aws-exports';
+
+Amplify.configure({
+    Auth: {
+        region: process.env.VUE_APP_COGNITO_REGION,
+        userPoolId: process.env.VUE_APP_USER_POOL_ID,
+        userPoolWebClientId: process.env.VUE_APP_USER_POOL_CLIENT_ID,
+    }
+});
 
 const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-
 const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8080';
 const wsUrl = `${wsProtocol}://${apiUrl.split('//')[1]}`;
-
 const socket = new WebSocket(wsUrl);
 
-Amplify.configure(awsconfig);
-
-Vue.config.productionTip = false;
+const app = createApp(App);
 
 socket.onopen = () => {
     console.log('WebSocket Connection Opened');
@@ -28,8 +30,5 @@ socket.onmessage = (event) => {
     console.log('WebSocket Message:', event.data);
 };
 
-const app = createApp(App);
-
 app.provide('socket', socket);
-
 app.mount('#app');

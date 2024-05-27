@@ -2,87 +2,78 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.1"
+      version = "~> 5.0"
     }
   }
-  required_version = ">= 1.2.0"
 }
 
 provider "aws" {
-  region = var.region
+  region = "us-east-1"
 }
 
-variable "region" {
-  description = "The AWS region to deploy into"
-  default     = "us-east-1"
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+locals {
+  ingress = [
+    80,
+    3000
+  ]
+  account_id = data.aws_caller_identity.current.account_id
+  region = data.aws_region.current.name
+  backend_repo = "${local.account_id}.dkr.ecr.${local.region}.amazonaws.com/tic-tac-toe-backend"
 }
 
-resource "aws_vpc" "tictactoe_vpc" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-  tags = {
-    Name = "TicTacToeVPC"
-  }
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
 }
 
-resource "aws_subnet" "tictactoe_subnet" {
-  vpc_id                  = aws_vpc.tictactoe_vpc.id
-  cidr_block              = "10.0.1.0/24"
+
+resource "aws_subnet" "public" {
+  vpc_id = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
   map_public_ip_on_launch = true
-  availability_zone       = "${var.region}a"
-  tags = {
-    Name = "TicTacToeSubnet"
-  }
 }
 
-resource "aws_internet_gateway" "tictactoe_igw" {
-  vpc_id = aws_vpc.tictactoe_vpc.id
-  tags = {
-    Name = "TicTacToeIGW"
-  }
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
 }
 
-resource "aws_route_table" "tictactoe_rt" {
-  vpc_id = aws_vpc.tictactoe_vpc.id
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.tictactoe_igw.id
-  }
-  tags = {
-    Name = "TicTacToeRouteTable"
+    gateway_id = aws_internet_gateway.main.id
   }
 }
 
-resource "aws_route_table_association" "tictactoe_rta" {
-  subnet_id      = aws_subnet.tictactoe_subnet.id
-  route_table_id = aws_route_table.tictactoe_rt.id
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
 }
 
-resource "aws_security_group" "tictactoe_sg" {
-  name        = "TicTacToeSG"
-  description = "Security Group for TicTacToe app"
-  vpc_id      = aws_vpc.tictactoe_vpc.id
+
+resource "aws_security_group" "main-sg" {
+  name_prefix = "tic-tac-toe-sg-"
+  vpc_id      = aws_vpc.main.id
+
+  dynamic ingress {
+    for_each = toset(local.ingress)
+    content {
+      from_port   = ingress.value
+      to_port     = ingress.value
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
 
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8081
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["18.206.107.24/29"]
   }
 
   egress {
@@ -91,79 +82,64 @@ resource "aws_security_group" "tictactoe_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "TicTacToeSG"
-  }
 }
 
-resource "aws_instance" "tictactoe_instance" {
-  ami                         = "ami-080e1f13689e07408"
-  instance_type               = "t2.micro"
-  key_name                    = "vockey"
-  subnet_id                   = aws_subnet.tictactoe_subnet.id
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.tictactoe_sg.id]
 
-  user_data = templatefile("${path.module}/user-data.sh", {
-    user_pool_id        = aws_cognito_user_pool.tictactoe_user_pool.id
-    user_pool_client_id = aws_cognito_user_pool_client.tictactoe_user_pool_client.id
-    cognito_region      = var.region
-  })
-
-  tags = {
-    Name = "TicTacToeInstance"
-  }
+resource "aws_iam_instance_profile" "profile" {
+  name_prefix = "tic-tac-toe-profile-"
+  role        = "LabRole"
 }
 
-resource "aws_cognito_user_pool" "tictactoe_user_pool" {
-  name = "TicTacToeUserPool"
+
+resource "aws_instance" "app-instance" {
+  ami = "ami-051f8a213df8bc089"
+  instance_type = "t2.micro"
+  subnet_id = aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.main-sg.id]
+  user_data = <<-EOF
+              #!/bin/bash
+              yum install -y docker
+              systemctl enable docker
+              systemctl start docker
+              sudo chown $USER /var/run/docker.sock
+              echo '#!/bin/bash' > /etc/rc.local
+              echo 'sudo aws ecr get-login-password --region ${local.region} | docker login --username AWS --password-stdin ${local.account_id}.dkr.ecr.${local.region}.amazonaws.com' >> /etc/rc.local
+              echo 'sudo docker pull ${local.backend_repo}:latest' >> /etc/rc.local
+              echo 'sudo docker run --env COGNITO_USER_POOL_ID=${aws_cognito_user_pool.user_pool.id} --env COGNITO_APP_CLIENT_ID=${aws_cognito_user_pool_client.client.id} --env COGNITO_REGION=${local.region} -d -p 3000:3000 ${local.backend_repo}:latest' >> /etc/rc.local
+              sudo chmod +x /etc/rc.local
+              sudo bash /etc/rc.local
+              EOF
+  iam_instance_profile = aws_iam_instance_profile.profile.name
 }
 
-resource "aws_cognito_user_pool_client" "tictactoe_user_pool_client" {
-  name         = "TicTacToeUserPoolClient"
-  user_pool_id = aws_cognito_user_pool.tictactoe_user_pool.id
+output "app-instance-ip" {
+  value = aws_instance.app-instance.public_ip
+}
+
+
+resource "aws_cognito_user_pool" "user_pool" {
+  name = "tic-tac-toe-user-pool"
+}
+
+resource "aws_cognito_user_pool_client" "client" {
+  name = "tic-tac-toe-cognito-client"
+
+  user_pool_id = aws_cognito_user_pool.user_pool.id
   generate_secret = false
+  explicit_auth_flows = [
+    "ALLOW_REFRESH_TOKEN_AUTH",
+    "ALLOW_USER_PASSWORD_AUTH"
+  ]
 }
 
-resource "aws_cognito_identity_pool" "tictactoe_identity_pool" {
-  identity_pool_name               = "TicTacToeIdentityPool"
-  allow_unauthenticated_identities = false
-
-  cognito_identity_providers {
-    client_id   = aws_cognito_user_pool_client.tictactoe_user_pool_client.id
-    provider_name = "cognito-idp.${var.region}.amazonaws.com/${aws_cognito_user_pool.tictactoe_user_pool.id}"
-  }
+output "cognito-user-pool-id" {
+  value = aws_cognito_user_pool.user_pool.id
 }
 
-data "template_file" "aws_exports" {
-  template = file("${path.module}/aws-exports.js.tpl")
-
-  vars = {
-    identity_pool_id    = aws_cognito_identity_pool.tictactoe_identity_pool.id
-    user_pool_id        = aws_cognito_user_pool.tictactoe_user_pool.id
-    user_pool_client_id = aws_cognito_user_pool_client.tictactoe_user_pool_client.id
-  }
+output "cognito-client-id" {
+  value = aws_cognito_user_pool_client.client.id
 }
 
-resource "local_file" "aws_exports_js" {
-  content  = data.template_file.aws_exports.rendered
-  filename = "${path.module}/aws-exports.js"
-}
-
-resource "local_file" "copy_aws_exports_js" {
-  content  = data.template_file.aws_exports.rendered
-  filename = "${path.module}/frontend/source/aws-exports.js"
-}
-
-output "user_pool_id" {
-  value = aws_cognito_user_pool.tictactoe_user_pool.id
-}
-
-output "user_pool_client_id" {
-  value = aws_cognito_user_pool_client.tictactoe_user_pool_client.id
-}
-
-output "identity_pool_id" {
-  value = aws_cognito_identity_pool.tictactoe_identity_pool.id
+output "cognito-region" {
+  value = local.region
 }
