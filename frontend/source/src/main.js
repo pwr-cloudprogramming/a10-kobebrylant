@@ -1,17 +1,10 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import {Amplify} from 'aws-amplify';
+import awsExports  from "../aws-exports";
 
-const awsConfig = {
-    Auth: {
-        region: process.env.VUE_APP_COGNITO_REGION,
-        userPoolId: process.env.VUE_APP_COGNITO_USER_POOL_ID,
-        userPoolWebClientId: process.env.VUE_APP_COGNITO_CLIENT_ID,
-    }
-};
 
-Amplify.configure(awsConfig);
-
+Amplify.configure(awsExports);
 const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
 const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8080';

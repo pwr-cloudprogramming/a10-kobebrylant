@@ -3,3 +3,5 @@ flask_cors
 subprocess.run
 boto3
 Flask-JWT-Extended
+python-jose
+os
