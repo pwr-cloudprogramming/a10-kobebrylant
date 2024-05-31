@@ -1,5 +1,16 @@
 import { createApp } from 'vue';
 import App from './App.vue';
+import {Amplify} from 'aws-amplify';
+
+const awsConfig = {
+    Auth: {
+        region: process.env.VUE_APP_COGNITO_REGION,
+        userPoolId: process.env.VUE_APP_COGNITO_USER_POOL_ID,
+        userPoolWebClientId: process.env.VUE_APP_COGNITO_CLIENT_ID,
+    }
+};
+
+Amplify.configure(awsConfig);
 
 const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
@@ -8,10 +19,6 @@ const wsUrl = `${wsProtocol}://${apiUrl.split('//')[1]}`;
 
 const socket = new WebSocket(wsUrl);
 
-console.log('Cognito User Pool ID:', process.env.VUE_APP_COGNITO_USER_POOL_ID);
-console.log('Cognito Client ID:', process.env.VUE_APP_COGNITO_CLIENT_ID);
-console.log('Cognito Region:', process.env.VUE_APP_COGNITO_REGION);
-console.log('API URL:', process.env.VUE_APP_API_URL);
 
 socket.onopen = () => {
     console.log('WebSocket Connection Opened');

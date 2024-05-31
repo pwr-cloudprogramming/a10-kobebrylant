@@ -1,13 +1,25 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import random
-import subprocess
+import boto3
+from jose import jwt, JWTError
+import os
 
 app = Flask(__name__)
 CORS(app)
 
+# Configurations
+COGNITO_REGION = os.getenv('COGNITO_REGION', 'us-east-1')
+USER_POOL_ID = os.getenv('COGNITO_USER_POOL_ID', 'not-set')
+APP_CLIENT_ID = os.getenv('COGNITO_CLIENT_ID', 'not-set')
+
+# AWS Cognito client
+cognito_client = boto3.client('cognito-idp', region_name=COGNITO_REGION)
+
+# Games data store
 games = {}
 
+# Utility function to check the winner
 def check_winner(board, usernames):
     winning_combinations = [
         [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -19,7 +31,41 @@ def check_winner(board, usernames):
             return board[combo[0]]
     return None
 
+# Authentication utility function
+def authenticate_token(token):
+    try:
+        # Decode JWT token
+        header = jwt.get_unverified_headers(token)
+        kid = header['kid']
+        keys_url = f'https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json'
+        response = requests.get(keys_url)
+        keys = response.json()['keys']
+
+        # Find the key that matches the kid
+        key = next(k for k in keys if k['kid'] == kid)
+
+        # Decode the token using the public key
+        public_key = jwt.construct_key(key)
+        claims = jwt.decode(token, public_key, algorithms=['RS256'], audience=APP_CLIENT_ID)
+        return claims
+    except JWTError:
+        return None
+
+# Decorator to require authentication
+def login_required(f):
+    def decorated_function(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if token:
+            token = token.replace('Bearer ', '')
+            claims = authenticate_token(token)
+            if claims:
+                request.user = claims
+                return f(*args, **kwargs)
+        return jsonify({'error': 'Unauthorized'}), 401
+    return decorated_function
+
 @app.route('/start', methods=['POST'])
+@login_required
 def start_game():
     data = request.get_json()
     username = data.get('username')
@@ -38,6 +84,7 @@ def start_game():
     })
 
 @app.route('/join', methods=['POST'])
+@login_required
 def join_game():
     data = request.get_json()
     game_id = data['game_id']
@@ -52,6 +99,7 @@ def join_game():
         return jsonify({'error': 'Game not found or already full'}), 404
 
 @app.route('/game/<game_id>', methods=['GET'])
+@login_required
 def get_game_state(game_id):
     game = games.get(game_id)
     if game is None:
@@ -65,8 +113,8 @@ def get_game_state(game_id):
         'gameEnded': game['gameEnded']
     })
 
-
 @app.route('/play', methods=['POST'])
+@login_required
 def play():
     data = request.get_json()
     username = data['username']

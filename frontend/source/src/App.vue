@@ -1,23 +1,21 @@
 <template>
   <div class="app">
     <div v-if="!accessToken" class="auth-forms">
+      <RegisterComponent />
+      <LoginComponent />
     </div>
-    {{cognitoClientId}}
-    {{cognitoUserPoolId}}
-    {{cognitoRegion}}
     <div v-if="accessToken && !gameId" class="username">
       <h1>Tic Tac Toe</h1>
       <input v-model="username" class="input" placeholder="Enter your username" />
       <div @click="createGame" class="start-button">Create Game</div>
       <input v-model="joiningGameId" class="input" placeholder="Enter game ID to join" />
       <div @click="joinGame" class="start-button">Join Game</div>
+      <button @click="logout" class="logout-button">Logout</button>
     </div>
-
     <div v-if="gameId && !bothPlayersJoined" class="waiting">
       Waiting for another player to join...
       Game ID: {{ gameId }}
     </div>
-
     <div v-else-if="gameId && bothPlayersJoined" class="game">
       <div class="player-turn">{{ currentPlayer }}'s turn</div>
       <div class="game-info">
@@ -45,8 +43,12 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
+import RegisterComponent from '../components/RegisterComponent.vue';
+import LoginComponent from '../components/LoginComponent.vue';
+import { fetchAuthSession, signOut } from 'aws-amplify/auth';
 
 const accessToken = ref(localStorage.getItem('accessToken') || null);
+const refreshToken = ref(localStorage.getItem('refreshToken') || null);
 const username = ref('');
 const gameId = ref(null);
 const joiningGameId = ref('');
@@ -57,19 +59,8 @@ const currentSign = ref('X');
 const hoverIndex = ref(null);
 const bothPlayersJoined = ref(false);
 const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8080';
-const cognitoClientId = process.env.VUE_APP_COGNITO_CLIENT_ID ||'not-set';
-const cognitoUserPoolId = process.env.VUE_APP_COGNITO_USER_POOL_ID || 'not-set';
-const cognitoRegion = process.env.VUE_APP_COGNITO_REGION || 'not-set';
 
 let gameStateInterval = null;
-
-// const handleLogin = (token) => {
-//   accessToken.value = token;
-// };
-//
-// const handleRegistration = () => {
-//   alert('Registration successful! Please login to continue.');
-// };
 
 const fetchGameState = async () => {
   if (!gameId.value) return;
@@ -172,7 +163,34 @@ const hoverCell = (index) => {
   }
 };
 
-onMounted(() => {
+const refreshAccessToken = async () => {
+  try {
+    const session = await fetchAuthSession();
+    const newAccessToken = session.tokens.accessToken;
+    accessToken.value = newAccessToken;
+    localStorage.setItem('accessToken', newAccessToken);
+  } catch (error) {
+    console.error('Error refreshing access token', error);
+  }
+};
+
+const logout = () => {
+    signOut().then(() => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    accessToken.value = null;
+    refreshToken.value = null;
+    alert('Logged out successfully!');
+    window.location.reload(); // Reload to update the state in App.vue
+  }).catch(error => {
+    console.error('Error during logout', error);
+  });
+};
+
+onMounted(async () => {
+  if (refreshToken.value) {
+    await refreshAccessToken();
+  }
   fetchGameState();
   gameStateInterval = setInterval(fetchGameState, 200);
 });
@@ -281,5 +299,15 @@ html, body {
   text-align: center;
   color: #494D5F;
   margin-top: 15px;
+}
+
+.logout-button {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #ff6f61;
+  border-radius: 10px;
+  text-align: center;
+  color: #fff;
+  cursor: pointer;
 }
 </style>
