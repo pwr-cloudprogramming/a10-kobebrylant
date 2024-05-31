@@ -11,3 +11,4 @@ COPY ./source .
 EXPOSE 8081
 
 CMD ["npm", "run", "serve", "--host"]
+

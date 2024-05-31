@@ -1,24 +1,22 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import random
+import subprocess
 import boto3
+
 from botocore.exceptions import ClientError
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-import os
+
+app.config['JWT_SECRET_KEY'] = 'secret_jwt'
+jwt = JWTManager(app)
+
+cognito_client = boto3.client('cognito-idp', region_name='us-east-1')
+
+USER_POOL_ID = 'your_user_pool_id'
+APP_CLIENT_ID = 'your_app_client_id'
 
 app = Flask(__name__)
 CORS(app)
-
-# Configure JWT
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'default_jwt_secret')
-jwt = JWTManager(app)
-
-# Cognito configuration
-USER_POOL_ID = os.getenv('USER_POOL_ID')
-APP_CLIENT_ID = os.getenv('APP_CLIENT_ID')
-COGNITO_REGION = os.getenv('COGNITO_REGION', 'us-east-1')
-
-cognito_client = boto3.client('cognito-idp', region_name=COGNITO_REGION)
 
 games = {}
 
@@ -74,15 +72,15 @@ def login():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/start', methods=['POST'])
-@jwt_required()
 def start_game():
-    current_user = get_jwt_identity()
+    data = request.get_json()
+    username = data.get('username')
     game_id = str(random.randint(1000, 9999))
     games[game_id] = {
         'board': [None] * 9,
         'currentPlayer': 'X',
         'winner': None,
-        'usernames': {'X': current_user, 'O': None},
+        'usernames': {'X': username, 'O': None},
         'game_id': game_id,
         'gameEnded': False
     }
@@ -92,14 +90,12 @@ def start_game():
     })
 
 @app.route('/join', methods=['POST'])
-@jwt_required()
 def join_game():
-    current_user = get_jwt_identity()
     data = request.get_json()
     game_id = data['game_id']
-    
+    username = data['username']
     if game_id in games and not games[game_id]['usernames']['O']:
-        games[game_id]['usernames']['O'] = current_user
+        games[game_id]['usernames']['O'] = username
         return jsonify({
             'message': 'Player2 joined the game',
             'game_id': game_id
@@ -108,7 +104,6 @@ def join_game():
         return jsonify({'error': 'Game not found or already full'}), 404
 
 @app.route('/game/<game_id>', methods=['GET'])
-@jwt_required()
 def get_game_state(game_id):
     game = games.get(game_id)
     if game is None:
@@ -122,11 +117,11 @@ def get_game_state(game_id):
         'gameEnded': game['gameEnded']
     })
 
+
 @app.route('/play', methods=['POST'])
-@jwt_required()
 def play():
-    current_user = get_jwt_identity()
     data = request.get_json()
+    username = data['username']
     game_id = data['game_id']
     move = data['move']
 
@@ -137,7 +132,7 @@ def play():
     if None in game['usernames'].values():
         return jsonify({'error': 'Waiting for all players to join'}), 403
 
-    if current_user != game['usernames'][game['currentPlayer']]:
+    if username != game['usernames'][game['currentPlayer']]:
         return jsonify({'error': 'Not your turn'}), 403
 
     board = game['board']
