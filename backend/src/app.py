@@ -2,18 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import random
 import subprocess
-import boto3
-
-from botocore.exceptions import ClientError
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
-
-app.config['JWT_SECRET_KEY'] = 'secret_jwt'
-jwt = JWTManager(app)
-
-cognito_client = boto3.client('cognito-idp', region_name='us-east-1')
-
-USER_POOL_ID = 'your_user_pool_id'
-APP_CLIENT_ID = 'your_app_client_id'
 
 app = Flask(__name__)
 CORS(app)
@@ -30,46 +18,6 @@ def check_winner(board, usernames):
         if board[combo[0]] and board[combo[0]] == board[combo[1]] == board[combo[2]]:
             return board[combo[0]]
     return None
-
-@app.route('/register', methods=['POST'])
-def register():
-    data = request.get_json()
-    username = data['username']
-    password = data['password']
-    email = data['email']
-
-    try:
-        response = cognito_client.sign_up(
-            ClientId=APP_CLIENT_ID,
-            Username=username,
-            Password=password,
-            UserAttributes=[
-                {'Name': 'email', 'Value': email}
-            ]
-        )
-        return jsonify({'message': 'User registered successfully'}), 200
-    except ClientError as e:
-        return jsonify({'error': str(e)}), 400
-
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    username = data['username']
-    password = data['password']
-
-    try:
-        response = cognito_client.initiate_auth(
-            ClientId=APP_CLIENT_ID,
-            AuthFlow='USER_PASSWORD_AUTH',
-            AuthParameters={
-                'USERNAME': username,
-                'PASSWORD': password,
-            }
-        )
-        access_token = response['AuthenticationResult']['AccessToken']
-        return jsonify(access_token=access_token), 200
-    except ClientError as e:
-        return jsonify({'error': str(e)}), 400
 
 @app.route('/start', methods=['POST'])
 def start_game():

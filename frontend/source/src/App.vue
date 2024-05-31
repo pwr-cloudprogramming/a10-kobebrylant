@@ -1,10 +1,10 @@
 <template>
   <div class="app">
     <div v-if="!accessToken" class="auth-forms">
-      <register-component @registered="handleRegistration" />
-      <login-component @login="handleLogin" />
     </div>
-
+    {{cognitoClientId}}
+    {{cognitoUserPoolId}}
+    {{cognitoRegion}}
     <div v-if="accessToken && !gameId" class="username">
       <h1>Tic Tac Toe</h1>
       <input v-model="username" class="input" placeholder="Enter your username" />
@@ -42,150 +42,150 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
-import RegisterComponent from './components/Register.vue';
-import LoginComponent from './components/Login.vue';
 
-export default {
-  components: {
-    'register-component': RegisterComponent,
-    'login-component': LoginComponent
-  },
-  data() {
-    return {
-      accessToken: localStorage.getItem('accessToken') || null,
-      username: '',
-      gameId: null,
-      joiningGameId: '',
-      board: Array(9).fill(null),
-      winner: null,
-      currentPlayer: '',
-      currentSign: 'X',
-      hoverIndex: null,
-      bothPlayersJoined: false,
-      apiUrl: process.env.VUE_APP_API_URL || 'http://localhost:8080',
-    };
-  },
-  methods: {
-    handleLogin(token) {
-      this.accessToken = token;
-    },
-    handleRegistration() {
-      alert('Registration successful! Please login to continue.');
-    },
-    async fetchGameState() {
-      if (!this.gameId) return;
-      try {
-        const response = await axios.get(`${this.apiUrl}/game/${this.gameId}`, {
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`
-          }
-        });
-        this.board = response.data.board;
-        this.currentPlayer = response.data.usernames[response.data.currentPlayer];
-        this.currentSign = response.data.currentPlayer === 'X' ? 'X' : 'O';
-        this.bothPlayersJoined = response.data.usernames['X'] && response.data.usernames['O'];
-        this.winner = response.data.winner;
+const accessToken = ref(localStorage.getItem('accessToken') || null);
+const username = ref('');
+const gameId = ref(null);
+const joiningGameId = ref('');
+const board = ref(Array(9).fill(null));
+const winner = ref(null);
+const currentPlayer = ref('');
+const currentSign = ref('X');
+const hoverIndex = ref(null);
+const bothPlayersJoined = ref(false);
+const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8080';
+const cognitoClientId = process.env.VUE_APP_COGNITO_CLIENT_ID ||'not-set';
+const cognitoUserPoolId = process.env.VUE_APP_COGNITO_USER_POOL_ID || 'not-set';
+const cognitoRegion = process.env.VUE_APP_COGNITO_REGION || 'not-set';
 
-        if (response.data.gameEnded) {
-          if (this.gameStateInterval) {
-            clearInterval(this.gameStateInterval);
-            this.gameStateInterval = null;
-          }
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    async createGame() {
-      try {
-        const response = await axios.post(`${this.apiUrl}/start`, {
-          username: this.username
-        }, {
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`
-          }
-        });
-        this.gameId = response.data.game_id;
-        this.fetchGameState();
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    async joinGame() {
-      try {
-        await axios.post(`${this.apiUrl}/join`, {
-          game_id: this.joiningGameId,
-          username: this.username
-        }, {
-          headers: {
-            Authorization: `Bearer ${this.accessToken}`
-          }
-        });
-        this.gameId = this.joiningGameId;
-        this.fetchGameState();
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    async makeMove(index) {
-      if (this.username === this.currentPlayer && !this.board[index] && !this.winner) {
-        try {
-          const response = await axios.post(`${this.apiUrl}/play`, {
-            game_id: this.gameId,
-            move: index,
-            username: this.username,
-          }, {
-            headers: {
-              Authorization: `Bearer ${this.accessToken}`
-            }
-          });
-          this.board = response.data.board;
-          this.winner = response.data.winner;
-          this.currentPlayer = response.data.usernames[response.data.currentPlayer];
-        } catch (error) {
-          console.error(error);
-        }
-      }
-    },
-    resetGame() {
-      this.username = '';
-      this.gameId = null;
-      this.joiningGameId = '';
-      this.board = Array(9).fill(null);
-      this.winner = null;
-      this.currentPlayer = '';
-      this.currentSign = 'X';
-      this.bothPlayersJoined = false;
+let gameStateInterval = null;
 
-      if (this.gameStateInterval) {
-        clearInterval(this.gameStateInterval);
-      }
-      this.gameStateInterval = setInterval(this.fetchGameState, 1000);
-    },
+// const handleLogin = (token) => {
+//   accessToken.value = token;
+// };
+//
+// const handleRegistration = () => {
+//   alert('Registration successful! Please login to continue.');
+// };
 
-    hoverCell(index) {
-      if (!this.winner) {
-        this.hoverIndex = index;
+const fetchGameState = async () => {
+  if (!gameId.value) return;
+  try {
+    const response = await axios.get(`${apiUrl}/game/${gameId.value}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken.value}`
       }
-    },
-  },
-  mounted() {
-    this.fetchGameState();
-    this.gameStateInterval = setInterval(this.fetchGameState, 200);
-  },
+    });
+    board.value = response.data.board;
+    currentPlayer.value = response.data.usernames[response.data.currentPlayer];
+    currentSign.value = response.data.currentPlayer === 'X' ? 'X' : 'O';
+    bothPlayersJoined.value = response.data.usernames['X'] && response.data.usernames['O'];
+    winner.value = response.data.winner;
 
-  beforeUnmount() {
-    if (this.gameStateInterval) {
-      clearInterval(this.gameStateInterval);
+    if (response.data.gameEnded) {
+      if (gameStateInterval) {
+        clearInterval(gameStateInterval);
+        gameStateInterval = null;
+      }
     }
-  },
+  } catch (error) {
+    console.error(error);
+  }
 };
+
+const createGame = async () => {
+  try {
+    const response = await axios.post(`${apiUrl}/start`, {
+      username: username.value
+    }, {
+      headers: {
+        Authorization: `Bearer ${accessToken.value}`
+      }
+    });
+    gameId.value = response.data.game_id;
+    fetchGameState();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const joinGame = async () => {
+  try {
+    await axios.post(`${apiUrl}/join`, {
+      game_id: joiningGameId.value,
+      username: username.value
+    }, {
+      headers: {
+        Authorization: `Bearer ${accessToken.value}`
+      }
+    });
+    gameId.value = joiningGameId.value;
+    fetchGameState();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const makeMove = async (index) => {
+  if (username.value === currentPlayer.value && !board.value[index] && !winner.value) {
+    try {
+      const response = await axios.post(`${apiUrl}/play`, {
+        game_id: gameId.value,
+        move: index,
+        username: username.value,
+      }, {
+        headers: {
+          Authorization: `Bearer ${accessToken.value}`
+        }
+      });
+      board.value = response.data.board;
+      winner.value = response.data.winner;
+      currentPlayer.value = response.data.usernames[response.data.currentPlayer];
+    } catch (error) {
+      console.error(error);
+    }
+  }
+};
+
+const resetGame = () => {
+  username.value = '';
+  gameId.value = null;
+  joiningGameId.value = '';
+  board.value = Array(9).fill(null);
+  winner.value = null;
+  currentPlayer.value = '';
+  currentSign.value = 'X';
+  bothPlayersJoined.value = false;
+
+  if (gameStateInterval) {
+    clearInterval(gameStateInterval);
+  }
+  gameStateInterval = setInterval(fetchGameState, 1000);
+};
+
+const hoverCell = (index) => {
+  if (!winner.value) {
+    hoverIndex.value = index;
+  }
+};
+
+onMounted(() => {
+  fetchGameState();
+  gameStateInterval = setInterval(fetchGameState, 200);
+});
+
+onBeforeUnmount(() => {
+  if (gameStateInterval) {
+    clearInterval(gameStateInterval);
+  }
+});
 </script>
 
 <style>
-.html, body {
+html, body {
   margin: 0;
   padding: 0;
   font-family: Arial, sans-serif;
