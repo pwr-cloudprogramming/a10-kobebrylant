@@ -4,3 +4,4 @@ subprocess.run
 boto3
 Flask-JWT-Extended
 python-jose
+requests
