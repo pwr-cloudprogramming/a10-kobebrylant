@@ -14,10 +14,9 @@ import { signIn } from 'aws-amplify/auth';
 
 import { fetchAuthSession } from 'aws-amplify/auth';
 
-const session = await fetchAuthSession();
-
-console.log("id token", session.tokens.idToken)
-console.log("access token", session.tokens.accessToken)
+//
+// console.log("id token", session.tokens.idToken)
+// console.log("access token", session.tokens.accessToken)
 
 const username = ref('');
 const password = ref('');
@@ -30,6 +29,8 @@ const login = async () => {
       username: username.value,
       password: password.value
     });
+    const session = await fetchAuthSession();
+
     localStorage.setItem('accessToken', session.tokens.accessToken);
     localStorage.setItem('idToken', session.tokens.idToken);
     alert('Login successful!');

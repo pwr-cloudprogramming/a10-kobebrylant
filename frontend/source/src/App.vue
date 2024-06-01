@@ -63,6 +63,7 @@ const bothPlayersJoined = ref(false);
 const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8080';
 const view = ref('login');
 
+console.log('accessToken', accessToken.value);
 let gameStateInterval = null;
 
 const fetchGameState = async () => {
