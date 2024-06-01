@@ -4,6 +4,8 @@ import random
 import boto3
 from jose import jwt, JWTError
 import os
+import requests
+from functools import wraps
 
 app = Flask(__name__)
 CORS(app)
@@ -53,6 +55,7 @@ def authenticate_token(token):
 
 # Decorator to require authentication
 def login_required(f):
+    @wraps(f)
     def decorated_function(*args, **kwargs):
         token = request.headers.get('Authorization')
         if token:
