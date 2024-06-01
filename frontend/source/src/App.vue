@@ -1,8 +1,9 @@
 <template>
   <div class="app">
-    <div v-if="!accessToken" class="auth-forms">
-      <RegisterComponent />
-      <LoginComponent />
+    <div v-if="!accessToken">
+      <RegisterComponent v-if="view === 'register'" @switch-view="switchView" />
+      <LoginComponent v-if="view === 'login'" @switch-view="switchView" @login-success="handleLoginSuccess" />
+      <ConfirmComponent v-if="view === 'confirm'" @switch-view="switchView" />
     </div>
     <div v-if="accessToken && !gameId" class="username">
       <h1>Tic Tac Toe</h1>
@@ -45,6 +46,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 import RegisterComponent from '../components/RegisterComponent.vue';
 import LoginComponent from '../components/LoginComponent.vue';
+import ConfirmComponent from '../components/ConfirmComponent.vue';
 import { fetchAuthSession, signOut } from 'aws-amplify/auth';
 
 const accessToken = ref(localStorage.getItem('accessToken') || null);
@@ -59,6 +61,7 @@ const currentSign = ref('X');
 const hoverIndex = ref(null);
 const bothPlayersJoined = ref(false);
 const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8080';
+const view = ref('login');
 
 let gameStateInterval = null;
 
@@ -175,7 +178,7 @@ const refreshAccessToken = async () => {
 };
 
 const logout = () => {
-    signOut().then(() => {
+  signOut().then(() => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     accessToken.value = null;
@@ -185,6 +188,15 @@ const logout = () => {
   }).catch(error => {
     console.error('Error during logout', error);
   });
+};
+
+const switchView = (newView) => {
+  view.value = newView;
+};
+
+const handleLoginSuccess = () => {
+  accessToken.value = localStorage.getItem('accessToken');
+  refreshToken.value = localStorage.getItem('refreshToken');
 };
 
 onMounted(async () => {

@@ -166,6 +166,12 @@ resource "aws_instance" "tictactoe_instance" {
 # Define Cognito User Pool
 resource "aws_cognito_user_pool" "user_pool" {
   name = "tic-tac-toe-user-pool"
+
+  email_configuration {
+    email_sending_account = "COGNITO_DEFAULT"
+  }
+
+  auto_verified_attributes = ["email"]
 }
 
 resource "aws_cognito_user_pool_client" "client" {
