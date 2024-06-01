@@ -19,7 +19,12 @@ const emit = defineEmits(['switch-view']);
 
 const confirmRegistration = async () => {
   try {
-    await confirmSignUp(username.value, confirmationCode.value);
+    await confirmSignUp(
+        {
+          username: username.value,
+          confirmationCode: confirmationCode.value
+        }
+    );
     alert('Confirmation successful! Please log in.');
     emit('switch-view', 'login');
   } catch (error) {

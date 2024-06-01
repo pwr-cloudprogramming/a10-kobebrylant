@@ -12,6 +12,13 @@
 import { ref } from 'vue';
 import { signIn } from 'aws-amplify/auth';
 
+import { fetchAuthSession } from 'aws-amplify/auth';
+
+const session = await fetchAuthSession();
+
+console.log("id token", session.tokens.idToken)
+console.log("access token", session.tokens.accessToken)
+
 const username = ref('');
 const password = ref('');
 // eslint-disable-next-line
@@ -23,9 +30,8 @@ const login = async () => {
       username: username.value,
       password: password.value
     });
-    const {accessToken, refreshToken} = user.signInUserSession;
-    localStorage.setItem('accessToken', accessToken.jwtToken);
-    localStorage.setItem('refreshToken', refreshToken.token);
+    localStorage.setItem('accessToken', session.tokens.accessToken);
+    localStorage.setItem('idToken', session.tokens.idToken);
     alert('Login successful!');
     emit('login-success');
   } catch (error) {

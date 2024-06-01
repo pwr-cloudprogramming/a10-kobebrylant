@@ -15,6 +15,7 @@ Amplify.configure({
         }
     }
 });
+
 const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
 const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:8080';

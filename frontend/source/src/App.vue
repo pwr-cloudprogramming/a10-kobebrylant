@@ -50,7 +50,7 @@ import ConfirmComponent from '../components/ConfirmComponent.vue';
 import { fetchAuthSession, signOut } from 'aws-amplify/auth';
 
 const accessToken = ref(localStorage.getItem('accessToken') || null);
-const refreshToken = ref(localStorage.getItem('refreshToken') || null);
+const idToken = ref(localStorage.getItem('idToken') || null);
 const username = ref('');
 const gameId = ref(null);
 const joiningGameId = ref('');
@@ -180,9 +180,9 @@ const refreshAccessToken = async () => {
 const logout = () => {
   signOut().then(() => {
     localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('idToken');
     accessToken.value = null;
-    refreshToken.value = null;
+    idToken.value = null;
     alert('Logged out successfully!');
     window.location.reload(); // Reload to update the state in App.vue
   }).catch(error => {
@@ -196,11 +196,11 @@ const switchView = (newView) => {
 
 const handleLoginSuccess = () => {
   accessToken.value = localStorage.getItem('accessToken');
-  refreshToken.value = localStorage.getItem('refreshToken');
+  idToken.value = localStorage.getItem('idToken');
 };
 
 onMounted(async () => {
-  if (refreshToken.value) {
+  if (idToken.value) {
     await refreshAccessToken();
   }
   fetchGameState();
