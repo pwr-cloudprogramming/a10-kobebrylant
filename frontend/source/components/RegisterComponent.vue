@@ -20,6 +20,7 @@ const register = async () => {
   try {
     await signUp({
       username: username.value,
+      email: email.value,
       password: password.value,
       attributes: {
         email: email.value,
