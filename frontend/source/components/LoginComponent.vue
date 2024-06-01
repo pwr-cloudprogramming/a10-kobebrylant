@@ -26,7 +26,7 @@ const emit = defineEmits(['switch-view', 'login-success']);
 
 const login = async () => {
   try {
-    const user = await signIn({
+    await signIn({
       username: username.value,
       password: password.value
     });
