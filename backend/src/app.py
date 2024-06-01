@@ -33,7 +33,6 @@ def check_winner(board, usernames):
             return board[combo[0]]
     return None
 
-# Authentication utility function
 def authenticate_token(token):
     try:
         # Decode JWT token
@@ -46,11 +45,16 @@ def authenticate_token(token):
         # Find the key that matches the kid
         key = next(k for k in keys if k['kid'] == kid)
 
-        # Decode the token using the public key
-        public_key = jwt.construct_key(key)
-        claims = jwt.decode(token, public_key, algorithms=['RS256'], audience=APP_CLIENT_ID)
+        # Convert JWK to PEM format key
+        public_key = RSAKey(key)
+
+        claims = jwt.decode(token, public_key.to_pem(), algorithms=['RS256'], audience=APP_CLIENT_ID)
         return claims
-    except JWTError:
+    except JWTError as e:
+        print(f"JWTError: {e}")
+        return None
+    except Exception as e:
+        print(f"Error: {e}")
         return None
 
 # Decorator to require authentication
