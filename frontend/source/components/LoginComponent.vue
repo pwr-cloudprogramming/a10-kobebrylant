@@ -9,14 +9,19 @@
 
 <script setup>
 import { ref } from 'vue';
-import { signIn } from "aws-amplify/auth"
+import { signIn } from 'aws-amplify/auth';
 
 const username = ref('');
 const password = ref('');
 
 const login = async () => {
   try {
-    const user = await signIn(username.value, password.value);
+    const user = await signIn(
+        {
+          username: username.value,
+          password: password.value
+        }
+    );
     const { accessToken, refreshToken } = user.signInUserSession;
     localStorage.setItem('accessToken', accessToken.jwtToken);
     localStorage.setItem('refreshToken', refreshToken.token);
