@@ -20,11 +20,12 @@ const register = async () => {
   try {
     await signUp({
       username: username.value,
-      email: email.value,
       password: password.value,
-      attributes: {
-        email: email.value,
-      },
+      options: {
+        userAttributes: {
+          email: email.value
+        },
+      }
     });
     alert('Registration successful! Please check your email to confirm your account.');
   } catch (error) {
