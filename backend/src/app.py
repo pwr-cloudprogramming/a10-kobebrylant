@@ -39,6 +39,10 @@ def check_winner(board, usernames):
 def authenticate_token(token):
     try:
         # Decode JWT token
+        print(f"Token: {token}")
+        print(f"Region: {COGNITO_REGION}")
+        print(f"User Pool ID: {USER_POOL_ID}")
+        print(f"Client ID: {APP_CLIENT_ID}")
         header = jwt.get_unverified_headers(token)
         kid = header['kid']
         keys_url = f'https://cognito-idp.{COGNITO_REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json'
