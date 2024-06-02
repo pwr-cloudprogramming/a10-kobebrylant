@@ -48,7 +48,7 @@ def authenticate_token(token):
         key = next(k for k in keys if k['kid'] == kid)
 
         # Convert JWK to PEM format key
-        public_key = jwt.construct_rsa_key(key)
+        public_key = RSAKey(key)
 
         # Decode the token using the public key
         claims = jwt.decode(token, public_key, algorithms=['RS256'], audience=APP_CLIENT_ID)
