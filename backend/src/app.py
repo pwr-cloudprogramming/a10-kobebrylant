@@ -70,9 +70,11 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         token = request.headers.get('Authorization')
+        print(f"Token login: {token}")
         if token:
             token = token.replace('Bearer ', '')
             claims = authenticate_token(token)
+            print(f"Claims: {claims}")
             if claims:
                 request.user = claims
                 return f(*args, **kwargs)
