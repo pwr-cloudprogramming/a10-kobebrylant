@@ -6,6 +6,8 @@ from jose import jwt, JWTError
 import os
 import requests
 from functools import wraps
+from jose.backends.rsa_backend import RSAKey
+
 
 app = Flask(__name__)
 CORS(app)
