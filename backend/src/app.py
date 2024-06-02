@@ -10,7 +10,8 @@ from jose.backends.rsa_backend import RSAKey
 
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True, allow_headers=[
+    'Content-Type', 'Authorization', 'X-Requested-With', 'Origin'])
 
 # Configurations
 COGNITO_REGION = os.getenv('COGNITO_REGION', 'us-east-1')
