@@ -53,7 +53,7 @@ def authenticate_token(token):
         key = next(k for k in keys if k['kid'] == kid)
 
         # Convert JWK to PEM format key
-        public_key = RSAKey(key)
+        public_key = RSAKey(key, algorithm='RS256')
 
         # Decode the token using the public key
         claims = jwt.decode(token, public_key, algorithms=['RS256'], audience=APP_CLIENT_ID)
@@ -80,6 +80,11 @@ def login_required(f):
                 return f(*args, **kwargs)
         return jsonify({'error': 'Unauthorized'}), 401
     return decorated_function
+
+@app.route('/protected', methods=['GET'])
+@login_required
+def protected():
+    return jsonify({'message': f'Hello, {request.user["username"]}! You are authenticated.'})
 
 @app.route('/start', methods=['POST'])
 @login_required
