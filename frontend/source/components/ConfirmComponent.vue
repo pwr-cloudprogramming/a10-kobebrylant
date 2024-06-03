@@ -37,5 +37,11 @@ const confirmRegistration = async () => {
 </script>
 
 <style scoped>
-/* Add your styles here */
-</style>
+.confirm{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 20px;
+}</style>

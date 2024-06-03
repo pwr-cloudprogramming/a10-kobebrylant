@@ -4,15 +4,15 @@
     <input v-model="username" placeholder="Username" class="input"/>
     <input v-model="email" type="email" placeholder="Email" class="input"/>
     <input v-model="password" type="password" placeholder="Password" class="input"/>
+    <input v-model="repeatPassword" type="password" placeholder="Repeat Password" class="input"/>
     <button @click="register" class="start-button">Register</button>
     <p>Already have an account? <span @click="switchToLogin" class="link">Login</span></p>
-
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { signUp } from "aws-amplify/auth";
+import {ref} from 'vue';
+import {signUp} from "aws-amplify/auth";
 
 // eslint-disable-next-line
 const emit = defineEmits(['switch-view']);
@@ -20,8 +20,13 @@ const emit = defineEmits(['switch-view']);
 const username = ref('');
 const email = ref('');
 const password = ref('');
+const repeatPassword = ref('');
 
 const register = async () => {
+  if (password.value !== repeatPassword.value) {
+    alert('Passwords do not match');
+    return;
+  }
   try {
     await signUp({
       username: username.value,
@@ -46,5 +51,12 @@ const switchToLogin = () => {
 </script>
 
 <style scoped>
-/* Add your styles here */
+.register {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 20px;
+}
 </style>
