@@ -1,4 +1,4 @@
-# Wojciech Skuła - Terraform, EC2, TicTacToe report
+# Wojciech Skuła - Cognito TicTacToe report
 
 - Course: *Cloud programming*
 - Group: Group 4 
@@ -13,10 +13,10 @@ Description and scheme of the developed infrastructure.
 - Route Table: A route table named "TicTacToeRouteTable" with a route to the internet gateway.
 - Route Table Association: An association between the route table and the public subnet to allow internet traffic from the subnet.
 - Security Group: A security group named "TicTacToeSG" that allows SSH, HTTP, and custom port 8080-8081 traffic inbound from anywhere (0.0.0.0/0) and allows all outbound traffic.
-- IAM Instance Profile: An IAM instance profile named "tic-tac-toe-profile" that can be attached to EC2 instances. This profile is currently not assigned a role.
+- IAM Instance Profile: An IAM instance profile named "tic-tac-toe-profile" that can be attached to EC2 instances. 
 - EC2 Instance: A single EC2 instance named "TicTacToeInstance" launched in the public subnet with the "t2.micro" instance type. The user data script for the instance installs Docker, Docker Compose, clones a git repository, and starts the Tic Tac Toe application using Docker Compose. The script also retrieves the instance's public IP address and stores it in an environment variable.
-- Cognito User Pool : Creates a user pool named "tic-tac-toe-user-pool". This resource is likely intended to provide user authentication for the Tic Tac Toe application.
-- Cognito User Pool Client : Creates a user pool client named "tic-tac-toe-cognito-client". This resource is likely used with the Cognito user pool to allow users to sign in to the Tic Tac Toe application.
+- Cognito User Pool : Creates a user pool named "tic-tac-toe-user-pool". This resource is used to provide user authentication for the Tic Tac Toe application.
+- Cognito User Pool Client : Creates a user pool client named "tic-tac-toe-cognito-client". This resource is used with the Cognito user pool to allow users to sign in to the Tic Tac Toe application.
 ## Preview
 
 Screenshots of configured AWS services. Screenshots of your application running.
